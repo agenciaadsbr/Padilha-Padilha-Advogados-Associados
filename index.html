@@ -1870,7 +1870,7 @@ form.addEventListener("submit", (e) => {
 
   /* grava o lead no Supabase; keepalive garante o envio mesmo saindo da página */
   const utm = new URLSearchParams(location.search).get("utm_source");
-  sbGravar("lp_leads", {
+  const gravacao = sbGravar("lp_leads", {
     nome: nome,
     whatsapp: zap.value.trim(),
     origem: [utm, ultimoCta || "form"].filter(Boolean).join(" / ")
@@ -1878,7 +1878,15 @@ form.addEventListener("submit", (e) => {
 
   botao.disabled = true;
   botao.style.opacity = ".75";
-  window.location.href = CONFIG.redirect + "?nome=" + encodeURIComponent(nome);
+
+  /* espera a gravação sair antes de navegar (no máximo 1,5s) — não depende do
+     suporte a keepalive do navegador, e nunca segura o lead se o banco falhar */
+  Promise.race([
+    gravacao,
+    new Promise(ok => setTimeout(ok, 1500))
+  ]).then(() => {
+    window.location.href = CONFIG.redirect + "?nome=" + encodeURIComponent(nome);
+  });
 });
 
 </script>
